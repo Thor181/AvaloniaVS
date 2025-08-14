@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Xml;
 
 namespace Avalonia.Ide.CompletionEngine;
@@ -23,6 +24,10 @@ public class CompletionEngine
         private static Regex? _findElementByNameRegex;
         internal static Regex FindElementByNameRegex => _findElementByNameRegex ??=
              new($"\\s(?:(x\\:)?Name)=\"(?<AttribValue>[\\w\\:\\s\\|\\.]+)\"", RegexOptions.Compiled);
+
+        private static Regex? _findClassesRegex;
+        internal static Regex FindClassesRegex => _findClassesRegex ??=
+            new("<(?<ElementName>\\w+)\\s+.*Classes=\"(?<ClassesAttrib>.*?)\"", RegexOptions.Compiled);
 
         public void SetMetadata(Metadata metadata, string xml, string? currentAssemblyName = null)
         {
@@ -142,9 +147,9 @@ public class CompletionEngine
             propName ??= "";
             if (t == null)
                 return Array.Empty<MetadataProperty>();
-            
+
             var e = t.Properties.Where(p => p.Name.Contains(propName, StringComparison.OrdinalIgnoreCase) && (hasSetter ? p.HasSetter : p.HasGetter));
-            
+
             if (attached.HasValue)
                 e = e.Where(p => p.IsAttached == attached);
             if (staticGetter)
@@ -1326,8 +1331,32 @@ public class CompletionEngine
                     }
                 }
                 break;
-            case SelectorStatement.Function:
             case SelectorStatement.Class:
+                if (fullText is not null)
+                {
+                    var selectorElementName = text.Slice(0, text.IndexOf('.'));
+
+                    var matches = MetadataHelper
+                        .FindClassesRegex
+                        .Matches(fullText);
+
+                    if (matches is { Count: > 0 })
+                    {
+                        foreach (Match item in matches)
+                        {
+                            var elementName = item.Groups["ElementName"].Value;
+
+                            if (item.Success && elementName.AsSpan().StartsWith(selectorElementName))
+                            {
+                                var classes = item.Groups["ClassesAttrib"].Value.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                                parsed = (parser.LastParsedPosition ?? 0);
+                                completions.AddRange(classes.Select(c => new Completion(c, CompletionKind.Class, elementName)));
+                            }
+                        }
+                    }
+                }
+                break;
+            case SelectorStatement.Function:
             case SelectorStatement.Middle:
             case SelectorStatement.End:
             default:
