@@ -1335,6 +1335,24 @@ public class CompletionEngine
                 if (fullText is not null)
                 {
                     var selectorElementName = text.Slice(0, text.IndexOf('.'));
+                    if (selectorElementName.Length > 0 && selectorElementName[0] == '^')
+                    {
+                        var currentLevel = 0;
+                        while (selectorElementName.Length > 0 && selectorElementName[0] == '^')
+                        {
+                            selectorElementName = state.FindParentAttributeValue("Selector", currentLevel++, maxLevels: 1).AsSpan();
+                            var indexOfLastWhiteSpace = selectorElementName.LastIndexOf(' ');
+                            if (indexOfLastWhiteSpace == -1)
+                                indexOfLastWhiteSpace = 0;
+
+                            var typeName = selectorElementName[indexOfLastWhiteSpace..].Trim().ToString();
+                            var parentSelectorIsType = Helper.FilterTypes(typeName).Any(x => x.Key == typeName);
+                            if (parentSelectorIsType)
+                            {
+                                selectorElementName = typeName.AsSpan();
+                            }
+                        }
+                    }
 
                     var matches = MetadataHelper
                         .FindClassesRegex
