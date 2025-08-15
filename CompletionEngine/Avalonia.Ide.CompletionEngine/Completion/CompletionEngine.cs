@@ -27,7 +27,7 @@ public class CompletionEngine
 
         private static Regex? _findClassesRegex;
         internal static Regex FindClassesRegex => _findClassesRegex ??=
-            new("<(?<ElementName>\\w+)\\s+.*Classes=\"(?<ClassesAttrib>.*?)\"", RegexOptions.Compiled);
+            new("<(?<ElementName>\\w+)[^>]*?\\s+Classes=\"(?<ClassesAttrib>[^\"]*)\"[^>]*\\/?>", RegexOptions.Compiled);
 
         public void SetMetadata(Metadata metadata, string xml, string? currentAssemblyName = null)
         {
