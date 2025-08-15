@@ -1342,6 +1342,8 @@ public class CompletionEngine
 
                     if (matches is { Count: > 0 })
                     {
+                        var completionsClasses = new HashSet<Completion>();
+
                         foreach (Match item in matches)
                         {
                             var elementName = item.Groups["ElementName"].Value;
@@ -1350,9 +1352,11 @@ public class CompletionEngine
                             {
                                 var classes = item.Groups["ClassesAttrib"].Value.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                                 parsed = (parser.LastParsedPosition ?? 0);
-                                completions.AddRange(classes.Select(c => new Completion(c, CompletionKind.Class, elementName)));
+                                completionsClasses.UnionWith(classes.Select(c => new Completion(c, CompletionKind.Class, elementName)));
                             }
                         }
+
+                        completions.AddRange(completionsClasses);
                     }
                 }
                 break;
