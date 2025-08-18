@@ -117,4 +117,14 @@ internal static class Utils
         }
         return default;
     }
+
+    public static bool Contains(this string source, string value, StringComparison stringComparison)
+    {
+        return Contains(source.AsSpan(), value.AsSpan(), stringComparison);
+    }
+
+    public static bool Contains(this ReadOnlySpan<char> span, ReadOnlySpan<char> value, StringComparison stringComparison)
+    {
+        return span.IndexOf(value, stringComparison) >= 0;
+    }
 }

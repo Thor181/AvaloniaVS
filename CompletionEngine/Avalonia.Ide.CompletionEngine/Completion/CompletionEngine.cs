@@ -140,14 +140,19 @@ public class CompletionEngine
         public static IEnumerable<MetadataProperty> FilterProperty(MetadataType? t, string? propName,
             bool? attached,
             bool hasSetter,
-            bool staticGetter = false
+            bool staticGetter = false,
+            bool byContains = false
             )
         {
             propName ??= "";
             if (t == null)
                 return Array.Empty<MetadataProperty>();
 
-            var e = t.Properties.Where(p => p.Name.StartsWith(propName, StringComparison.OrdinalIgnoreCase) && (hasSetter ? p.HasSetter : p.HasGetter));
+            IEnumerable<MetadataProperty> e = Enumerable.Empty<MetadataProperty>();
+            if (byContains)
+                e = t.Properties.Where(p => p.Name.AsSpan().Overlaps("Classes".AsSpan()) || (p.Name.Contains(propName, StringComparison.OrdinalIgnoreCase) && (hasSetter ? p.HasSetter : p.HasGetter)));
+            else
+                e = t.Properties.Where(p => p.Name.AsSpan().StartsWith("Classes".AsSpan()) || (p.Name.StartsWith(propName, StringComparison.OrdinalIgnoreCase) && (hasSetter ? p.HasSetter : p.HasGetter)));
 
             if (attached.HasValue)
                 e = e.Where(p => p.IsAttached == attached);
@@ -1033,6 +1038,7 @@ public class CompletionEngine
     {
         int? parsed = default;
         var parser = SelectorParser.Parse(text);
+        
         var previousStatement = parser.PreviousStatement;
         switch (parser.Statement)
         {
@@ -1214,7 +1220,8 @@ public class CompletionEngine
                         var selectorElementProperties = MetadataHelper.FilterProperty(type,
                             propName: propertyName,
                             attached: default,
-                            hasSetter: false
+                            hasSetter: false,
+                            byContains: true
                             );
                         if (selectorElementProperties?.Any() == true)
                         {
@@ -1233,7 +1240,8 @@ public class CompletionEngine
                         var selectorElementProperties = MetadataHelper.FilterProperty(type,
                             propName: propertyName,
                             attached: true,
-                            hasSetter: false
+                            hasSetter: false,
+                            byContains: true
                             );
                         if (selectorElementProperties?.Any() == true)
                         {
